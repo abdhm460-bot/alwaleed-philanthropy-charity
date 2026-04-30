@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة التقديم - Application Portal</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+        <!-- Portal Styles -->
+    <link rel="stylesheet" href="styles/portal.css">
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="portal-header">
+        <div class="container">
+            <a href="index.html" class="back-link">
+                <i class="fas fa-arrow-right"></i>
+                <span data-en="Back to Home" data-ar="العودة للرئيسية">العودة للرئيسية</span>
+            </a>
+            <h1 class="portal-title" data-en="Grant Application Form" data-ar="نموذج طلب المنحة">نموذج طلب المنحة</h1>
+            <div class="language-switcher">
+                <button class="lang-btn active" data-lang="ar" title="العربية">العربية</button>
+                <button class="lang-btn" data-lang="en" title="English">EN</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="portal-container">
+        <!-- Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-steps">
+                <div class="step active" id="step1">
+                    <div class="step-circle">1</div>
+                    <p data-en="Personal Info" data-ar="البيانات الشخصية">البيانات الشخصية</p>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-circle">2</div>
+                    <p data-en="Contact & Career" data-ar="التواصل والوظيفة">التواصل والوظيفة</p>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-circle">3</div>
+                    <p data-en="Grant Details" data-ar="تفاصيل المنحة">تفاصيل المنحة</p>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-circle">4</div>
+                    <p data-en="Banking Info" data-ar="البيانات البنكية">البيانات البنكية</p>
+                </div>
+                <div class="step" id="step5">
+                    <div class="step-circle">5</div>
+                    <p data-en="Attachments" data-ar="المرفقات">المرفقات</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Container -->
+        <form id="grantForm" class="grant-form">
+            <!-- Step 1: Personal Information -->
+            <div class="form-step active" id="formStep1">
+                <h2 data-en="Step 1: Personal Information" data-ar="الخطوة 1: البيانات الشخصية">الخطوة 1: البيانات الشخصية</h2>
+                
+                <div class="form-group">
+                    <label for="fullName" data-en="Full Name (AR)" data-ar="الاسم الكامل (بالعربية)">الاسم الكامل (بالعربية) <span class="required">*</span></label>
+                    <input type="text" id="fullName" name="fullName" class="form-input" required>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="country" data-en="Country of Residence" data-ar="دولة الإقامة">دولة الإقامة <span class="required">*</span></label>
+                        <select id="country" name="country" class="form-input" required>
+                            <option value="">اختر دولة / Select Country</option>
+                            <option value="SA">المملكة العربية السعودية / Saudi Arabia</option>
+                            <option value="AE">الإمارات العربية المتحدة / UAE</option>
+                            <option value="KW">الكويت / Kuwait</option>
+                            <option value="BH">البحرين / Bahrain</option>
+                            <option value="QA">قطر / Qatar</option>
+                            <option value="OM">عمان / Oman</option>
+                            <option value="JO">الأردن / Jordan</option>
+                            <option value="LB">لبنان / Lebanon</option>
+                            <option value="SY">سوريا / Syria</option>
+                            <option value="IQ">العراق / Iraq</option>
+                            <option value="EG">مصر / Egypt</option>
+                            <option value="PS">فلسطين / Palestine</option>
+                            <option value="YE">اليمن / Yemen</option>
+                            <option value="OTHER">دولة أخرى / Other</option>
+                        </select>
+                        <span class="error-message"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="maritalStatus" data-en="Marital Status" data-ar="الحالة الاجتماعية">الحالة الاجتماعية <span class="required">*</span></label>
+                        <select id="maritalStatus" name="maritalStatus" class="form-input" required>
+                            <option value="">اختر / Select</option>
+                            <option value="single">أعزب / Single</option>
+                            <option value="married">متزوج / Married</option>
+                            <option value="divorced">مطلق / Divorced</option>
+                            <option value="widowed">أرمل / Widowed</option>
+                        </select>
+                        <span class="error-message"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="numChildren" data-en="Number of Children" data-ar="عدد الأطفال">عدد الأطفال <span class="required">*</span></label>
+                    <input type="number" id="numChildren" name="numChildren" class="form-input" min="0" required>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-next" onclick="nextStep()">
+                        <span data-en="Next" data-ar="التالي">التالي</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Contact & Career -->
+            <div class="form-step" id="formStep2">
+                <h2 data-en="Step 2: Contact & Career Information" data-ar="الخطوة 2: معلومات التواصل والوظيفة">الخطوة 2: معلومات التواصل والوظيفة</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone" data-en="Phone Number" data-ar="رقم الهاتف">رقم الهاتف <span class="required">*</span></label>
+                        <input type="tel" id="phone" name="phone" class="form-input" placeholder="+966 50 0000 0000" required>
+                        <span class="error-message"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email" data-en="Email Address" data-ar="البريد الإلكتروني">البريد الإلكتروني <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" class="form-input" required>
+                        <span class="error-message"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="profession" data-en="Job/Profession" data-ar="الوظيفة/المهنة">الوظيفة/المهنة <span class="required">*</span></label>
+                    <input type="text" id="profession" name="profession" class="form-input" required>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="income" data-en="Monthly Income (SAR)" data-ar="الدخل الشهري (ريال)">الدخل الشهري (ريال) <span class="required">*</span></label>
+                    <input type="number" id="income" name="income" class="form-input" min="0" step="100" required>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-prev" onclick="prevStep()">
+                        <i class="fas fa-arrow-right"></i>
+                        <span data-en="Previous" data-ar="السابق">السابق</span>
+                    </button>
+                    <button type="button" class="btn-next" onclick="nextStep()">
+                        <span data-en="Next" data-ar="التالي">التالي</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Grant Details -->
+            <div class="form-step" id="formStep3">
+                <h2 data-en="Step 3: Grant Details" data-ar="الخطوة 3: تفاصيل المنحة">الخطوة 3: تفاصيل المنحة</h2>
+                
+                <div class="form-group">
+                    <label for="grantType" data-en="Type of Grant" data-ar="نوع المنحة">نوع المنحة <span class="required">*</span></label>
+                    <select id="grantType" name="grantType" class="form-input" required>
+                        <option value="">اختر نوع المنحة / Select Grant Type</option>
+                        <option value="housing">الإسكان / Housing</option>
+                        <option value="investment">الاستثمار / Investment</option>
+                        <option value="smallProject">مشاريع صغيرة / Small Projects</option>
+                        <option value="debts">سداد الديون / Debts</option>
+                        <option value="marriage">النفقات الزوجية / Marriage</option>
+                        <option value="education">التعليم / Education</option>
+                        <option value="car">السيارة / Car</option>
+                        <option value="needyAssistance">مساعدة المحتاجين / Needy Assistance</option>
+                        <option value="sickness">المرض / Sickness</option>
+                        <option value="donation">تبرع / Donation</option>
+                    </select>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="grantAmount" data-en="Amount Requested (SAR)" data-ar="المبلغ المطلوب (ريال)">المبلغ المطلوب (ريال) <span class="required">*</span></label>
+                    <input type="number" id="grantAmount" name="grantAmount" class="form-input" min="0" step="100" required>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="grantDescription" data-en="Detailed Description" data-ar="وصف تفصيلي">وصف تفصيلي <span class="required">*</span></label>
+                    <textarea id="grantDescription" name="grantDescription" class="form-input" rows="5" placeholder="شرح الوضع / Explain your situation" required></textarea>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-prev" onclick="prevStep()">
+                        <i class="fas fa-arrow-right"></i>
+                        <span data-en="Previous" data-ar="السابق">السابق</span>
+                    </button>
+                    <button type="button" class="btn-next" onclick="nextStep()">
+                        <span data-en="Next" data-ar="التالي">التالي</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Banking Information -->
+            <div class="form-step" id="formStep4">
+                <h2 data-en="Step 4: Banking Information" data-ar="الخطوة 4: البيانات البنكية">الخطوة 4: البيانات البنكية</h2>
+                
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <p data-en="Your banking information is secure and only used to process grant disbursements." data-ar="معلومات البنك الخاصة بك آمنة وتُستخدم فقط لصرف المنحة.">معلومات البنك الخاصة بك آمنة وتُستخدم فقط لصرف المنحة.</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="bankName" data-en="Bank Name" data-ar="اسم البنك">اسم البنك <span class="required">*</span></label>
+                    <select id="bankName" name="bankName" class="form-input" required>
+                        <option value="">اختر البنك / Select Bank</option>
+                        <option value="SDB">البنك السعودي للتنمية / Saudi Development Bank</option>
+                        <option value="ALINMA">البنك الأهلي / Al Ahlي Bank</option>
+                        <option value="RIYAD">بنك الرياض / Riyad Bank</option>
+                        <option value="SAMBA">سامبا / SAMBA</option>
+                        <option value="RAJHI">مصرف الراجحي / Al Rajhi Bank</option>
+                        <option value="SNB">البنك الأهلي التجاري / National Commercial Bank</option>
+                        <option value="ARAB">البنك العربي / Arab Bank</option>
+                        <option value="GULF">بنك الخليج / Gulf Bank</option>
+                        <option value="EMIRATES">بنك الإمارات / Emirates Bank</option>
+                        <option value="FAB">بنك أبوظبي الأول / FAB</option>
+                        <option value="DIB">بنك الإمارات الإسلامي / DIB</option>
+                        <option value="CBD">بنك الدوحة / Doha Bank</option>
+                        <option value="OTHER">بنك آخر / Other</option>
+                    </select>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="accountHolder" data-en="Account Holder Name" data-ar="اسم صاحب الحساب">اسم صاحب الحساب <span class="required">*</span></label>
+                    <input type="text" id="accountHolder" name="accountHolder" class="form-input" required>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="iban" data-en="IBAN Number" data-ar="رقم الآيبان">رقم الآيبان <span class="required">*</span></label>
+                    <input type="text" id="iban" name="iban" class="form-input" placeholder="SA00 0000 0000 0000 0000 0000" maxlength="24" required>
+                    <small data-en="Format: SA + 22 digits" data-ar="التنسيق: SA + 22 رقم">التنسيق: SA + 22 رقم</small>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-prev" onclick="prevStep()">
+                        <i class="fas fa-arrow-right"></i>
+                        <span data-en="Previous" data-ar="السابق">السابق</span>
+                    </button>
+                    <button type="button" class="btn-next" onclick="nextStep()">
+                        <span data-en="Next" data-ar="التالي">التالي</span>
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 5: Attachments -->
+            <div class="form-step" id="formStep5">
+                <h2 data-en="Step 5: Attachments & Submission" data-ar="الخطوة 5: المرفقات والتقديم">الخطوة 5: المرفقات والتقديم</h2>
+                
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <p data-en="Please upload clear photos of both sides of your national ID. Maximum 5MB per file." data-ar="يرجى تحميل صور واضحة من جانبي بطاقتك الوطنية. الحد الأقصى 5 ميجابايت لكل ملف.">يرجى تحميل صور واضحة من جانبي بطاقتك الوطنية. الحد الأقصى 5 ميجابايت لكل ملف.</p>
+                </div>
+
+                <div class="form-group">
+                    <label data-en="ID Card - Front" data-ar="بطاقة الهوية - الوجه">بطاقة الهوية - الوجه <span class="required">*</span></label>
+                    <div class="file-upload">
+                        <!-- input مخفي - يُفتح عبر label أدناه -->
+                        <input type="file" id="idCardFront" name="idCardFront" class="file-input" accept=".jpg,.jpeg,.png,.pdf">
+                        <!-- label مربوط بـ input - يعمل على كل الأجهزة بدون JS -->
+                        <label for="idCardFront" class="file-upload-area" id="idCardFrontArea">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p data-en="Tap to choose a photo" data-ar="اضغط لاختيار صورة">اضغط لاختيار صورة</p>
+                            <small data-en="JPG, PNG, PDF - Max 5MB" data-ar="JPG، PNG، PDF - الحد الأقصى 5 ميجابايت">JPG، PNG، PDF - الحد الأقصى 5 ميجابايت</small>
+                        </label>
+                        <div class="file-preview" id="idCardFrontPreview"></div>
+                    </div>
+                    <span class="error-message" id="idCardFrontError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label data-en="ID Card - Back" data-ar="بطاقة الهوية - الخلف">بطاقة الهوية - الخلف <span class="required">*</span></label>
+                    <div class="file-upload">
+                        <!-- input مخفي - يُفتح عبر label أدناه -->
+                        <input type="file" id="idCardBack" name="idCardBack" class="file-input" accept=".jpg,.jpeg,.png,.pdf">
+                        <!-- label مربوط بـ input - يعمل على كل الأجهزة بدون JS -->
+                        <label for="idCardBack" class="file-upload-area" id="idCardBackArea">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p data-en="Tap to choose a photo" data-ar="اضغط لاختيار صورة">اضغط لاختيار صورة</p>
+                            <small data-en="JPG, PNG, PDF - Max 5MB" data-ar="JPG، PNG، PDF - الحد الأقصى 5 ميجابايت">JPG، PNG، PDF - الحد الأقصى 5 ميجابايت</small>
+                        </label>
+                        <div class="file-preview" id="idCardBackPreview"></div>
+                    </div>
+                    <span class="error-message" id="idCardBackError"></span>
+                </div>
+
+                <div class="form-group checkbox">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms" data-en="I agree to the Terms & Conditions and confirm that all information provided is accurate and complete." data-ar="أوافق على الشروط والأحكام وأؤكد أن جميع المعلومات المقدمة صحيحة وكاملة.">أوافق على الشروط والأحكام وأؤكد أن جميع المعلومات المقدمة صحيحة وكاملة.</label>
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-prev" onclick="prevStep()">
+                        <i class="fas fa-arrow-right"></i>
+                        <span data-en="Previous" data-ar="السابق">السابق</span>
+                    </button>
+                    <button type="button" id="submitBtn" class="btn-submit">
+                        <i class="fas fa-check-circle"></i>
+                        <span data-en="Submit Application" data-ar="تقديم الطلب">تقديم الطلب</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal" id="successModal">
+        <div class="modal-content">
+            <div class="modal-header success">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2 data-en="Application Submitted Successfully!" data-ar="تم تقديم الطلب بنجاح!">تم تقديم الطلب بنجاح!</h2>
+            <p data-en="Your transaction number is:" data-ar="رقم معاملتك:">رقم معاملتك:</p>
+            <div class="transaction-number" id="transactionNumber">WA-2026-0000</div>
+            <p class="modal-subtitle" data-en="Please save this number for your records." data-ar="يرجى حفظ هذا الرقم للمراجعة.">يرجى حفظ هذا الرقم للمراجعة.</p>
+            <p class="modal-text" data-en="You will now be redirected to WhatsApp to confirm your application." data-ar="سيتم تحويلك إلى واتس آب لتأكيد طلبك.">سيتم تحويلك إلى واتس آب لتأكيد طلبك.</p>
+            <button class="btn-close" onclick="redirectToWhatsApp()" data-en="Continue to WhatsApp" data-ar="الذهاب لواتس آب">الذهاب لواتس آب</button>
+        </div>
+    </div>
+
+        <!-- Scripts -->
+    <!-- Supabase Configuration -->
+    <script>
+        const SUPABASE_URL = 'https://tdjepjglnyumfdeljhqz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkamVwamdsbnl1bWZkZWxqaHF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MTgzNzYsImV4cCI6MjA5MzA5NDM3Nn0.OUVLxKKjxylaIBR9tGcCPm6g8N5FaCm0gigpNB_Wq3Q';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script>
+    
+    <script src="js/portal.js"></script>
+</body>
+                                                                                                               </html>
