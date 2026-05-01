@@ -14,8 +14,7 @@
         <!-- Portal Styles -->
     <link rel="stylesheet" href="styles/portal.css">
     
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Sheets Integration - لا يحتاج SDK خارجي -->
 </head>
 <body>
     <!-- Header -->
@@ -346,13 +345,9 @@
     </div>
 
         <!-- Scripts -->
-    <!-- Supabase Configuration -->
-    <script>
-        const SUPABASE_URL = 'https://tdjepjglnyumfdeljhqz.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkamVwamdsbnl1bWZkZWxqaHF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc1MTgzNzYsImV4cCI6MjA5MzA5NDM3Nn0.OUVLxKKjxylaIBR9tGcCPm6g8N5FaCm0gigpNB_Wq3Q';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    </script>
-    
+    <!-- Google Sheets Helper Script -->
+    <script src="js/sheets.js"></script>
     <script src="js/portal.js"></script>
 </body>
                                                                                                                </html>
+
