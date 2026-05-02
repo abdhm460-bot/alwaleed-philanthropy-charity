@@ -3,14 +3,16 @@ var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-fvc-LsoVHWwNdp
 async function saveToGoogleSheets(txNumber) {
     // 1. معالجة الصور (لدينا وجه وخلف للبطاقة في الكود الخاص بك)
     async function getBase64(fileId) {
-        var input = document.getElementById(fileId);
-        if (input && input.files.length > 0) {
-            return await new Promise((resolve) => {
-                var reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(input.files[0]);
-            });
-        }
+    var input = document.getElementById(fileId);
+    if (!input || input.files.length === 0) return "";
+
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result); // النتيجة تبدأ بـ data:image/...
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(input.files[0]);
+    });
+}
         return "";
     }
 
