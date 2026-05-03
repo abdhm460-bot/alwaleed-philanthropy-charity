@@ -213,8 +213,14 @@ function setupIBANFormatting() {
     if (!iban) return;
     iban.addEventListener('input', function() {
         var v = this.value.toUpperCase().replace(/\s/g, '');
-        if (!v.startsWith('SA')) v = 'SA' + v.replace(/[^0-9]/g, '');
-        v = v.slice(0, 24);
+        if (v.length >= 2 && /^[A-Z]{2}$/.test(v.slice(0,2))) {
+    v = v.slice(0,2) + v.slice(2).replace(/[^A-Z0-9]/g, '');
+} else if (v.length < 2) {
+    v = v.replace(/[^A-Z]/g, '');
+} else {
+    v = v.replace(/[^A-Z0-9]/g, '');
+}
+v = v.slice(0, 34);
         this.value = v.match(/.{1,4}/g) ? v.match(/.{1,4}/g).join(' ') : v;
     });
 }
@@ -252,7 +258,13 @@ function setupFormListeners() {
             'نوع المنحة: ' + (formData.grantDetails.grantType || '') + '\n' +
             'المبلغ: ' + (formData.grantDetails.grantAmount || '') + ' ريال'
         );
-        window.open('https://wa.me/966545239928?text=' + msg, '_blank');
+        var waLink = document.createElement('a');
+waLink.href = 'https://wa.me/966545239928?text=' + msg;
+waLink.target = '_blank';
+waLink.rel = 'noopener';
+document.body.appendChild(waLink);
+waLink.click();
+document.body.removeChild(waLink);
 
         // إظهار رسالة النجاح
         document.getElementById('transactionNumber').textContent = txNumber;
