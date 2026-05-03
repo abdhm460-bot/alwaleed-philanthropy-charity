@@ -258,13 +258,18 @@ function setupFormListeners() {
             'نوع المنحة: ' + (formData.grantDetails.grantType || '') + '\n' +
             'المبلغ: ' + (formData.grantDetails.grantAmount || '') + ' ريال'
         );
-        var waLink = document.createElement('a');
-waLink.href = 'https://wa.me/966545239928?text=' + msg;
-waLink.target = '_blank';
-waLink.rel = 'noopener';
-document.body.appendChild(waLink);
-waLink.click();
-document.body.removeChild(waLink);
+        var waUrl = 'whatsapp://send?phone=966545239928&text=' + msg;
+var waWeb = 'https://wa.me/966545239928?text=' + msg;
+
+// محاولة فتح التطبيق مباشرة
+var link = document.createElement('a');
+link.href = waUrl;
+link.click();
+
+// إذا لم يفتح التطبيق خلال ثانيتين افتح الويب
+setTimeout(function() {
+    window.open(waWeb, '_blank');
+}, 2000);
 
         // إظهار رسالة النجاح
         document.getElementById('transactionNumber').textContent = txNumber;
