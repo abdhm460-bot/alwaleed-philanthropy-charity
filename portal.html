@@ -97,7 +97,15 @@
                         </select>
                         <span class="error-message"></span>
                     </div>
+                </div>
 
+                <div class="form-group" id="otherCountryGroup" style="display:none">
+                    <label for="otherCountry">اسم الدولة <span class="required">*</span></label>
+                    <input type="text" id="otherCountry" name="otherCountry" class="form-input" placeholder="اكتب اسم دولتك">
+                    <span class="error-message"></span>
+                </div>
+
+                <div class="form-row">
                     <div class="form-group">
                         <label for="maritalStatus" data-en="Marital Status" data-ar="الحالة الاجتماعية">الحالة الاجتماعية <span class="required">*</span></label>
                         <select id="maritalStatus" name="maritalStatus" class="form-input" required>
@@ -240,6 +248,11 @@
                         <option value="CBD">بنك الدوحة / Doha Bank</option>
                         <option value="OTHER">بنك آخر / Other</option>
                     </select>
+                    <span class="error-message"></span>
+                </div>
+                <div class="form-group" id="otherBankGroup" style="display:none">
+                    <label for="otherBank">اسم البنك <span class="required">*</span></label>
+                    <input type="text" id="otherBank" name="otherBank" class="form-input" placeholder="اكتب اسم البنك">
                     <span class="error-message"></span>
                 </div>
 
