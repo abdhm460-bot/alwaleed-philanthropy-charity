@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupFormListeners();
     setupFileUpload();
     setupIBANFormatting();
+    setupOtherFields();
 });
 
 // ================================
@@ -203,6 +204,47 @@ function removeFile(id) {
     if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
     if (area) area.style.borderColor = '';
     delete formData.attachments[id];
+}
+
+// ================================
+// OTHER COUNTRY / BANK
+// ================================
+function setupOtherFields() {
+    // الدولة
+    var countrySelect = document.getElementById('country');
+    var otherCountryGroup = document.getElementById('otherCountryGroup');
+    var otherCountryInput = document.getElementById('otherCountry');
+
+    if (countrySelect) {
+        countrySelect.addEventListener('change', function() {
+            if (this.value === 'OTHER') {
+                otherCountryGroup.style.display = 'block';
+                otherCountryInput.required = true;
+            } else {
+                otherCountryGroup.style.display = 'none';
+                otherCountryInput.required = false;
+                otherCountryInput.value = '';
+            }
+        });
+    }
+
+    // البنك
+    var bankSelect = document.getElementById('bankName');
+    var otherBankGroup = document.getElementById('otherBankGroup');
+    var otherBankInput = document.getElementById('otherBank');
+
+    if (bankSelect) {
+        bankSelect.addEventListener('change', function() {
+            if (this.value === 'OTHER') {
+                otherBankGroup.style.display = 'block';
+                otherBankInput.required = true;
+            } else {
+                otherBankGroup.style.display = 'none';
+                otherBankInput.required = false;
+                otherBankInput.value = '';
+            }
+        });
+    }
 }
 
 // ================================
