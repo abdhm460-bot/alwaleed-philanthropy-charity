@@ -1,0 +1,27 @@
+{
+  "name": "alwaleed-philanthropy-charity",
+  "version": "1.0.0",
+  "description": "Alwaleed Philanthropies website with analytics",
+  "type": "module",
+  "scripts": {
+    "dev": "npx http-server -p 3000",
+    "build": "echo 'No build needed for static site'",
+    "lint": "echo 'Linting HTML files' && npx htmlhint '*.html'",
+    "test": "echo 'No tests configured'"
+  },
+  "keywords": [
+    "charity",
+    "philanthropy",
+    "alwaleed"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/analytics": "^1.1.1",
+    "@vercel/speed-insights": "^2.0.0"
+  },
+  "devDependencies": {
+    "htmlhint": "^1.1.4",
+    "http-server": "^14.1.1"
+  }
+}
