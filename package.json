@@ -1,0 +1,9 @@
+{
+  "name": "alwaleed-philanthropy-charity",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.0",
+    "@vercel/blob": "^2.0.0"
+  }
+}
