@@ -19,8 +19,11 @@ module.exports = async function handler(req, res) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return json(res, 503, { ok: false, error: 'BLOB_TOKEN_MISSING' });
 
   try {
-    let body = req.body;
-    if (typeof body === 'string') body = JSON.parse(body);
+    // Keep the Vercel Pages API body parser enabled. handleUpload expects the
+    // parsed HandleUploadBody for the client-token exchange.
+    const body = req.body && typeof req.body === 'object'
+      ? req.body
+      : (typeof req.body === 'string' ? JSON.parse(req.body) : null);
     if (!body || typeof body !== 'object') return json(res, 400, { ok: false, error: 'INVALID_JSON_BODY' });
 
     const response = await handleUpload({
@@ -40,6 +43,7 @@ module.exports = async function handler(req, res) {
         if (clientPayload) {
           try { meta = JSON.parse(clientPayload); } catch { throw new Error('INVALID_CLIENT_PAYLOAD'); }
         }
+        if (meta.applicationId !== applicationId || meta.fieldName !== fieldName) throw new Error('INVALID_CLIENT_PAYLOAD');
         const contentType = typeof meta.contentType === 'string' ? meta.contentType.toLowerCase() : null;
         const size = meta.size;
         const expectedExtension = contentType ? EXTENSIONS[contentType] : extension;
