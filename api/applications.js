@@ -50,6 +50,12 @@ function cleanText(value, max = 500) {
   return String(value ?? '').trim().slice(0, max);
 }
 
+function optionalNumber(value) {
+  if (value === '' || value === null || value === undefined) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Method not allowed' });
 
@@ -70,6 +76,8 @@ module.exports = async function handler(req, res) {
     const banking = p.bankingInfo || {};
     const iban = normalizeIban(banking.iban);
 
+    if (!cleanText(personal.fullName, 200)) return json(res, 400, { ok: false, error: 'Full name is required' });
+    if (!cleanText(contact.phone, 50)) return json(res, 400, { ok: false, error: 'Phone is required' });
     if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(iban)) {
       return json(res, 400, { ok: false, error: 'Invalid IBAN format' });
     }
@@ -80,45 +88,67 @@ module.exports = async function handler(req, res) {
 
     const encrypted = encryptIban(iban);
     const sql = neon(process.env.DATABASE_URL);
-    const applicationData = {
-      personalInfo: personal,
-      contactCareer: contact,
-      grantDetails: grant,
-      bankingInfo: {
-        ...banking,
-        iban: undefined
-      }
-    };
-    delete applicationData.bankingInfo.iban;
 
     const application = await sql`
-      INSERT INTO public.grant_applications (
-        application_id,
+      INSERT INTO public.applications (
+        id,
         transaction_number,
-        application_data,
+        full_name,
+        country,
+        marital_status,
+        num_children,
+        phone,
+        email,
+        profession,
+        monthly_income,
+        grant_type,
+        grant_amount,
+        grant_description,
+        bank_name,
+        account_holder,
         iban_ciphertext,
         iban_iv,
         iban_auth_tag,
-        iban_last4,
-        id_card_front_path,
-        id_card_back_path
+        iban_last4
       ) VALUES (
         ${body.applicationId}::uuid,
         ${cleanText(body.transactionNumber, 80)},
-        ${JSON.stringify(applicationData)}::jsonb,
+        ${cleanText(personal.fullName, 200)},
+        ${cleanText(personal.country || personal.otherCountry, 100) || null},
+        ${cleanText(personal.maritalStatus, 100) || null},
+        ${optionalNumber(personal.numChildren)},
+        ${cleanText(contact.phone, 50)},
+        ${cleanText(contact.email, 320) || null},
+        ${cleanText(contact.profession, 200) || null},
+        ${optionalNumber(contact.income)},
+        ${cleanText(grant.grantType, 200) || null},
+        ${optionalNumber(grant.grantAmount)},
+        ${cleanText(grant.grantDescription, 2000) || null},
+        ${cleanText(banking.bankName || banking.otherBank, 200) || null},
+        ${cleanText(banking.accountHolder, 200) || null},
         ${encrypted.ciphertext},
         ${encrypted.iv},
         ${encrypted.authTag},
-        ${encrypted.last4},
-        ${body.images.idCardFront.pathname},
-        ${body.images.idCardBack.pathname}
+        ${encrypted.last4}
       )
-      RETURNING application_id, transaction_number, created_at
+      RETURNING id, transaction_number, created_at
+    `;
+
+    await sql`
+      INSERT INTO public.application_images (
+        application_id,
+        image_side,
+        storage_key,
+        mime_type,
+        file_size
+      ) VALUES
+        (${body.applicationId}::uuid, 'front', ${body.images.idCardFront.pathname}, ${body.images.idCardFront.contentType}, ${body.images.idCardFront.size}),
+        (${body.applicationId}::uuid, 'back', ${body.images.idCardBack.pathname}, ${body.images.idCardBack.contentType}, ${body.images.idCardBack.size})
     `;
 
     return json(res, 201, {
       ok: true,
-      applicationId: application[0].application_id,
+      applicationId: application[0].id,
       transactionNumber: application[0].transaction_number,
       createdAt: application[0].created_at
     });
