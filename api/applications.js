@@ -43,9 +43,13 @@ module.exports = async function handler(req, res) {
 
     const p = body.payload, personal = p.personalInfo || {}, contact = p.contactCareer || {}, grant = p.grantDetails || {}, banking = p.bankingInfo || {};
     const iban = normalizeIban(banking.iban);
+    const phone = cleanText(contact.phone, 50);
+    const email = cleanText(contact.email, 320);
     if (!cleanText(personal.fullName, 200)) return json(res, 400, { ok: false, error: 'Full name is required' });
-    if (!cleanText(contact.phone, 50)) return json(res, 400, { ok: false, error: 'Phone is required' });
-    if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(iban)) return json(res, 400, { ok: false, error: 'Invalid IBAN format' });
+    if (!phone) return json(res, 400, { ok: false, error: 'Phone is required' });
+    if (!/^\+?[0-9\s\-\(\)\.]{10,25}$/.test(phone)) return json(res, 400, { ok: false, error: 'Invalid phone number' });
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) return json(res, 400, { ok: false, error: 'Invalid email address' });
+    if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,41}$/.test(iban)) return json(res, 400, { ok: false, error: 'Invalid IBAN format' });
     if (!validImageRecord(body.images.idCardFront, 'idCardFront', body.applicationId) || !validImageRecord(body.images.idCardBack, 'idCardBack', body.applicationId)) return json(res, 400, { ok: false, error: 'Invalid identity image metadata' });
 
     stage = 'iban-encryption';
@@ -62,7 +66,7 @@ module.exports = async function handler(req, res) {
       ) VALUES (
         ${body.applicationId}::uuid, ${cleanText(body.transactionNumber, 80)}, ${cleanText(personal.fullName, 200)},
         ${cleanText(personal.country || personal.otherCountry, 100) || null}, ${cleanText(personal.maritalStatus, 100) || null},
-        ${optionalNumber(personal.numChildren)}, ${cleanText(contact.phone, 50)}, ${cleanText(contact.email, 320) || null},
+        ${optionalNumber(personal.numChildren)}, ${phone}, ${email || null},
         ${cleanText(contact.profession, 200) || null}, ${optionalNumber(contact.income)}, ${cleanText(grant.grantType, 200) || null},
         ${optionalNumber(grant.grantAmount)}, ${cleanText(grant.grantDescription, 2000) || null}, ${cleanText(banking.bankName || banking.otherBank, 200) || null},
         ${cleanText(banking.accountHolder, 200) || null}, 'pending', NOW(), NOW(), ${encrypted.ciphertext}, ${encrypted.iv}, ${encrypted.authTag}, ${encrypted.last4}
