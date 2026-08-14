@@ -80,50 +80,45 @@ module.exports = async function handler(req, res) {
 
     const encrypted = encryptIban(iban);
     const sql = neon(process.env.DATABASE_URL);
+    const applicationData = {
+      personalInfo: personal,
+      contactCareer: contact,
+      grantDetails: grant,
+      bankingInfo: {
+        ...banking,
+        iban: undefined
+      }
+    };
+    delete applicationData.bankingInfo.iban;
 
     const application = await sql`
-      INSERT INTO public.applications (
-        id, transaction_number, full_name, country, marital_status, num_children,
-        phone, email, profession, monthly_income, grant_type, grant_amount,
-        grant_description, bank_name, account_holder, status, consent_accepted_at,
-        iban_ciphertext, iban_iv, iban_auth_tag, iban_last4
+      INSERT INTO public.grant_applications (
+        application_id,
+        transaction_number,
+        application_data,
+        iban_ciphertext,
+        iban_iv,
+        iban_auth_tag,
+        iban_last4,
+        id_card_front_path,
+        id_card_back_path
       ) VALUES (
         ${body.applicationId}::uuid,
         ${cleanText(body.transactionNumber, 80)},
-        ${cleanText(personal.fullName, 200)},
-        ${cleanText(personal.country, 120)},
-        ${cleanText(personal.maritalStatus, 80)},
-        ${Number.isFinite(Number(personal.numChildren)) ? Number(personal.numChildren) : null},
-        ${cleanText(contact.phone, 40)},
-        ${cleanText(contact.email, 254) || null},
-        ${cleanText(contact.profession, 200) || null},
-        ${Number.isFinite(Number(contact.income)) ? Number(contact.income) : null},
-        ${cleanText(grant.grantType, 120) || null},
-        ${Number.isFinite(Number(grant.grantAmount)) ? Number(grant.grantAmount) : null},
-        ${cleanText(grant.grantDescription, 2000) || null},
-        ${cleanText(banking.bankName, 200) || null},
-        ${cleanText(banking.accountHolder, 200) || null},
-        'pending',
-        NOW(),
+        ${JSON.stringify(applicationData)}::jsonb,
         ${encrypted.ciphertext},
         ${encrypted.iv},
         ${encrypted.authTag},
-        ${encrypted.last4}
+        ${encrypted.last4},
+        ${body.images.idCardFront.pathname},
+        ${body.images.idCardBack.pathname}
       )
-      RETURNING id, transaction_number, created_at
-    `;
-
-    await sql`
-      INSERT INTO public.application_images
-        (application_id, image_side, storage_key, original_name, mime_type, file_size)
-      VALUES
-        (${body.applicationId}::uuid, 'front', ${body.images.idCardFront.pathname}, ${cleanText(body.images.idCardFront.pathname.split('/').pop(), 255)}, ${body.images.idCardFront.contentType}, ${body.images.idCardFront.size}),
-        (${body.applicationId}::uuid, 'back', ${body.images.idCardBack.pathname}, ${cleanText(body.images.idCardBack.pathname.split('/').pop(), 255)}, ${body.images.idCardBack.contentType}, ${body.images.idCardBack.size})
+      RETURNING application_id, transaction_number, created_at
     `;
 
     return json(res, 201, {
       ok: true,
-      applicationId: application[0].id,
+      applicationId: application[0].application_id,
       transactionNumber: application[0].transaction_number,
       createdAt: application[0].created_at
     });
