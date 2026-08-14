@@ -43,7 +43,6 @@ module.exports = async function handler(req, res) {
       : await sql`SELECT id, transaction_number, full_name, country, phone, email, profession, grant_type, grant_amount, status, created_at, iban_last4 FROM public.applications ORDER BY created_at DESC LIMIT 100`;
 
     if (id && rows.length === 0) return json(res, 404, { ok: false, error: 'NOT_FOUND' });
-
     if (!id) return json(res, 200, { ok: true, applications: rows });
 
     const application = rows[0];
@@ -57,7 +56,9 @@ module.exports = async function handler(req, res) {
         pathname: image.storage_key,
         mimeType: image.mime_type,
         size: image.file_size,
-        url: blob?.url || null
+        // Never expose the Blob URL to the browser. The image is served through
+        // the authenticated admin-image endpoint so private Blob stores work too.
+        url: blob ? `/api/admin-image?pathname=${encodeURIComponent(image.storage_key)}` : null
       });
     }
 
