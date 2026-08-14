@@ -1,5 +1,5 @@
 /* ================================
-   PORTAL JAVASCRIPT - FINAL FIX
+   PORTAL JAVASCRIPT - SECURE STORAGE MIGRATION
    ================================ */
 
 let currentLanguage = 'ar';
@@ -23,9 +23,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function setupLanguageSwitchers() {
     document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            switchLanguage(this.getAttribute('data-lang'));
-        });
+        btn.addEventListener('click', function() { switchLanguage(this.getAttribute('data-lang')); });
     });
 }
 
@@ -38,9 +36,7 @@ function switchLanguage(lang) {
     });
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'en' ? 'ltr' : 'rtl';
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
-    });
+    document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-lang') === lang));
 }
 
 function nextStep() {
@@ -83,12 +79,10 @@ function validateStep(stepNumber) {
     let isValid = true;
     const step = document.getElementById('formStep' + stepNumber);
     if (!step) return false;
-
     step.querySelectorAll('[required]').forEach(function(input) {
         if (input.type === 'file' || input.type === 'checkbox') return;
         if (!validateField(input)) isValid = false;
     });
-
     if (stepNumber === 5) {
         ['idCardFront', 'idCardBack'].forEach(function(id) {
             const errorEl = document.getElementById(id + 'Error');
@@ -109,24 +103,11 @@ function validateField(field) {
     const errorEl = group && group.querySelector('.error-message');
     let isValid = true;
     let msg = '';
-
-    if (!value) {
-        isValid = false;
-        msg = currentLanguage === 'ar' ? 'هذا الحقل مطلوب' : 'This field is required';
-    } else if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        isValid = false;
-        msg = currentLanguage === 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email';
-    } else if (field.name === 'phone' && !/^\+?[0-9\s\-\(\)]{10,20}$/.test(value)) {
-        isValid = false;
-        msg = currentLanguage === 'ar' ? 'رقم الهاتف غير صحيح' : 'Invalid phone number';
-    } else if (field.name === 'iban' && !/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$/.test(value.replace(/\s/g, ''))) {
-        isValid = false;
-        msg = currentLanguage === 'ar' ? 'رقم الآيبان غير صحيح' : 'Invalid IBAN';
-    } else if ((field.name === 'grantAmount' || field.name === 'income') && (isNaN(value) || Number(value) <= 0)) {
-        isValid = false;
-        msg = currentLanguage === 'ar' ? 'يجب أن يكون رقماً موجباً' : 'Must be a positive number';
-    }
-
+    if (!value) { isValid = false; msg = currentLanguage === 'ar' ? 'هذا الحقل مطلوب' : 'This field is required'; }
+    else if (field.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) { isValid = false; msg = currentLanguage === 'ar' ? 'البريد الإلكتروني غير صحيح' : 'Invalid email'; }
+    else if (field.name === 'phone' && !/^\+?[0-9\s\-\(\)]{10,20}$/.test(value)) { isValid = false; msg = currentLanguage === 'ar' ? 'رقم الهاتف غير صحيح' : 'Invalid phone number'; }
+    else if (field.name === 'iban' && !/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$/.test(value.replace(/\s/g, ''))) { isValid = false; msg = currentLanguage === 'ar' ? 'رقم الآيبان غير صحيح' : 'Invalid IBAN'; }
+    else if ((field.name === 'grantAmount' || field.name === 'income') && (isNaN(value) || Number(value) <= 0)) { isValid = false; msg = currentLanguage === 'ar' ? 'يجب أن يكون رقماً موجباً' : 'Must be a positive number'; }
     field.classList.toggle('error', !isValid);
     if (errorEl) errorEl.textContent = isValid ? '' : msg;
     return isValid;
@@ -172,10 +153,7 @@ function processFile(file, id, input, preview, errorEl, area) {
     }
     if (errorEl) errorEl.textContent = '';
     formData.attachments[id] = file;
-    if (preview) {
-        preview.textContent = '✓ ' + file.name;
-        preview.style.display = 'block';
-    }
+    if (preview) { preview.textContent = '✓ ' + file.name; preview.style.display = 'block'; }
     if (area) area.style.borderColor = '#27ae60';
 }
 
@@ -201,7 +179,6 @@ function setupOtherFields() {
             if (!other) otherCountryInput.value = '';
         });
     }
-
     const bankSelect = document.getElementById('bankName');
     const otherBankGroup = document.getElementById('otherBankGroup');
     const otherBankInput = document.getElementById('otherBank');
@@ -224,50 +201,67 @@ function setupIBANFormatting() {
     });
 }
 
+async function uploadPrivateIdentityImage(applicationId, fieldName, file) {
+    if (!window.__vercelBlobUpload) {
+        const module = await import('https://esm.sh/@vercel/blob/client@2.3.0');
+        window.__vercelBlobUpload = module.upload;
+    }
+    const upload = window.__vercelBlobUpload;
+    const result = await upload(`applications/${applicationId}/${fieldName}`, file, {
+        access: 'private',
+        handleUploadUrl: '/api/blob-upload',
+        clientPayload: JSON.stringify({ applicationId, fieldName, contentType: file.type, size: file.size })
+    });
+    return { pathname: result.pathname, contentType: result.contentType || file.type, size: file.size };
+}
+
+function collectApplicationPayload() {
+    saveStepData(1); saveStepData(2); saveStepData(3); saveStepData(4);
+    return { personalInfo: formData.personalInfo, contactCareer: formData.contactCareer, grantDetails: formData.grantDetails, bankingInfo: formData.bankingInfo };
+}
+
+async function submitApplicationSecurely(txNumber) {
+    const applicationId = (crypto.randomUUID ? crypto.randomUUID() : ('00000000-0000-4000-8000-' + Date.now().toString().padStart(12, '0').slice(-12)));
+    const images = {};
+    for (const fieldName of ['idCardFront', 'idCardBack']) {
+        const file = formData.attachments[fieldName];
+        if (!file) throw new Error('Missing ' + fieldName);
+        images[fieldName] = await uploadPrivateIdentityImage(applicationId, fieldName, file);
+    }
+    const payload = collectApplicationPayload();
+    const response = await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId, transactionNumber: txNumber, payload, images })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.ok) throw new Error(result.error || 'Application save failed');
+    return result;
+}
+
 function setupFormListeners() {
     const submitBtn = document.getElementById('submitBtn');
     if (!submitBtn) return;
-
     submitBtn.addEventListener('click', async function() {
         if (!validateStep(5)) return;
         saveStepData(5);
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...';
-
         const txNumber = 'WA-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 90000) + 10000);
         let saved = false;
-        try {
-            saved = await saveToGoogleSheets(txNumber);
-        } catch (error) {
-            console.error('Application submission error:', error);
-            saved = false;
-        }
-
+        try { await submitApplicationSecurely(txNumber); saved = true; }
+        catch (error) { console.error('Application submission error:', error); saved = false; }
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-check-circle"></i> تقديم الطلب';
-
         if (!saved) {
-            alert(currentLanguage === 'ar'
-                ? 'تعذر حفظ الطلب. لم يتم تسجيله بنجاح. يرجى المحاولة مرة أخرى.'
-                : 'The application could not be saved. Please try again.');
+            alert(currentLanguage === 'ar' ? 'تعذر حفظ الطلب. لم يتم تسجيله بنجاح. يرجى المحاولة مرة أخرى.' : 'The application could not be saved. Please try again.');
             return;
         }
-
-        const msg = encodeURIComponent(
-            'مرحباً، لقد قمت بتقديم طلب منحة.\n' +
-            'رقم المعاملة: ' + txNumber + '\n' +
-            'الاسم: ' + (formData.personalInfo.fullName || '') + '\n' +
-            'الهاتف: ' + (formData.contactCareer.phone || '') + '\n' +
-            'نوع المنحة: ' + (formData.grantDetails.grantType || '') + '\n' +
-            'المبلغ: ' + (formData.grantDetails.grantAmount || '') + ' ريال'
-        );
+        const msg = encodeURIComponent('مرحباً، لقد قمت بتقديم طلب منحة.\n' + 'رقم المعاملة: ' + txNumber + '\n' + 'الاسم: ' + (formData.personalInfo.fullName || '') + '\n' + 'الهاتف: ' + (formData.contactCareer.phone || '') + '\n' + 'نوع المنحة: ' + (formData.grantDetails.grantType || '') + '\n' + 'المبلغ: ' + (formData.grantDetails.grantAmount || '') + ' ريال');
         const waUrl = 'whatsapp://send?phone=966545239928&text=' + msg;
         const waWeb = 'https://wa.me/966545239928?text=' + msg;
-        const link = document.createElement('a');
-        link.href = waUrl;
-        link.click();
+        const link = document.createElement('a'); link.href = waUrl; link.click();
         setTimeout(function() { window.open(waWeb, '_blank'); }, 2000);
-
         const transactionEl = document.getElementById('transactionNumber');
         const modal = document.getElementById('successModal');
         if (transactionEl) transactionEl.textContent = txNumber;
@@ -289,8 +283,6 @@ function redirectToWhatsApp() {
 
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('input:not([type=file]), select, textarea').forEach(function(field) {
-        field.addEventListener('blur', function() {
-            if (this.hasAttribute('required')) validateField(this);
-        });
+        field.addEventListener('blur', function() { if (this.hasAttribute('required')) validateField(this); });
     });
 });
