@@ -10,11 +10,8 @@ function json(res, status, body) {
 function getEncryptionKey() {
   const raw = process.env.IBAN_ENCRYPTION_KEY;
   if (!raw) throw new Error('IBAN_ENCRYPTION_KEY is not configured');
-
   const key = Buffer.from(raw, 'base64');
-  if (key.length !== 32) {
-    throw new Error('IBAN_ENCRYPTION_KEY must decode to exactly 32 bytes');
-  }
+  if (key.length !== 32) throw new Error('IBAN_ENCRYPTION_KEY must decode to exactly 32 bytes');
   return key;
 }
 
@@ -23,7 +20,6 @@ function encryptIban(iban) {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
   const ciphertext = Buffer.concat([cipher.update(iban, 'utf8'), cipher.final()]);
-
   return {
     ciphertext: ciphertext.toString('base64'),
     iv: iv.toString('base64'),
@@ -37,95 +33,99 @@ function normalizeIban(value) {
 }
 
 function isUuid(value) {
-  return typeof value === 'string' &&
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-function validateInput(body) {
-  if (!body || typeof body !== 'object') return 'Invalid request body';
-  if (!isUuid(body.applicationId)) return 'Invalid applicationId';
-  if (typeof body.transactionNumber !== 'string' || body.transactionNumber.length < 5 || body.transactionNumber.length > 80) {
-    return 'Invalid transactionNumber';
-  }
-  if (!body.payload || typeof body.payload !== 'object') return 'Missing application payload';
-  if (!body.images || typeof body.images !== 'object' || !body.images.idCardFront || !body.images.idCardBack) {
-    return 'Both identity images are required';
-  }
-  return null;
-}
-
-function validImageRecord(value) {
-  return value &&
-    typeof value.pathname === 'string' &&
-    /^applications\/[0-9a-f-]{36}\/(idCardFront|idCardBack)(?:-[A-Za-z0-9_-]+)?\.(jpg|png|webp)$/i.test(value.pathname) &&
+function validImageRecord(value, fieldName, applicationId) {
+  if (!value || typeof value !== 'object') return false;
+  const expectedPrefix = `applications/${applicationId}/${fieldName}`;
+  return typeof value.pathname === 'string' &&
+    value.pathname.startsWith(expectedPrefix) &&
+    !value.pathname.includes('..') &&
     ['image/jpeg', 'image/png', 'image/webp'].includes(value.contentType) &&
     Number.isInteger(value.size) && value.size > 0 && value.size <= 5 * 1024 * 1024;
+}
+
+function cleanText(value, max = 500) {
+  return String(value ?? '').trim().slice(0, max);
 }
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Method not allowed' });
 
   try {
-    const validationError = validateInput(req.body);
-    if (validationError) return json(res, 400, { ok: false, error: validationError });
+    const body = req.body || {};
+    if (!isUuid(body.applicationId)) return json(res, 400, { ok: false, error: 'Invalid applicationId' });
+    if (typeof body.transactionNumber !== 'string' || body.transactionNumber.length < 5 || body.transactionNumber.length > 80) {
+      return json(res, 400, { ok: false, error: 'Invalid transactionNumber' });
+    }
+    if (!body.payload || typeof body.payload !== 'object') return json(res, 400, { ok: false, error: 'Missing application payload' });
+    if (!body.images?.idCardFront || !body.images?.idCardBack) return json(res, 400, { ok: false, error: 'Both identity images are required' });
     if (!process.env.DATABASE_URL) return json(res, 503, { ok: false, error: 'DATABASE_URL is not configured' });
 
-    const payload = JSON.parse(JSON.stringify(req.body.payload));
-    const banking = payload.bankingInfo || {};
+    const p = body.payload;
+    const personal = p.personalInfo || {};
+    const contact = p.contactCareer || {};
+    const grant = p.grantDetails || {};
+    const banking = p.bankingInfo || {};
     const iban = normalizeIban(banking.iban);
 
     if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(iban)) {
       return json(res, 400, { ok: false, error: 'Invalid IBAN format' });
     }
-
-    if (!validImageRecord(req.body.images.idCardFront) || !validImageRecord(req.body.images.idCardBack)) {
+    if (!validImageRecord(body.images.idCardFront, 'idCardFront', body.applicationId) ||
+        !validImageRecord(body.images.idCardBack, 'idCardBack', body.applicationId)) {
       return json(res, 400, { ok: false, error: 'Invalid identity image metadata' });
     }
-
-    const frontPrefix = `applications/${req.body.applicationId}/idCardFront`;
-    const backPrefix = `applications/${req.body.applicationId}/idCardBack`;
-    if (!req.body.images.idCardFront.pathname.startsWith(frontPrefix) || !req.body.images.idCardBack.pathname.startsWith(backPrefix)) {
-      return json(res, 400, { ok: false, error: 'Identity image does not belong to this application' });
-    }
-
-    delete payload.bankingInfo.iban;
 
     const encrypted = encryptIban(iban);
     const sql = neon(process.env.DATABASE_URL);
 
-    const result = await sql`
-      INSERT INTO grant_applications (
-        application_id,
-        transaction_number,
-        application_data,
-        iban_ciphertext,
-        iban_iv,
-        iban_auth_tag,
-        iban_last4,
-        id_card_front_path,
-        id_card_back_path,
-        created_at
-      )
-      VALUES (
-        ${req.body.applicationId}::uuid,
-        ${req.body.transactionNumber},
-        ${JSON.stringify(payload)}::jsonb,
+    const application = await sql`
+      INSERT INTO public.applications (
+        id, transaction_number, full_name, country, marital_status, num_children,
+        phone, email, profession, monthly_income, grant_type, grant_amount,
+        grant_description, bank_name, account_holder, status, consent_accepted_at,
+        iban_ciphertext, iban_iv, iban_auth_tag, iban_last4
+      ) VALUES (
+        ${body.applicationId}::uuid,
+        ${cleanText(body.transactionNumber, 80)},
+        ${cleanText(personal.fullName, 200)},
+        ${cleanText(personal.country, 120)},
+        ${cleanText(personal.maritalStatus, 80)},
+        ${Number.isFinite(Number(personal.numChildren)) ? Number(personal.numChildren) : null},
+        ${cleanText(contact.phone, 40)},
+        ${cleanText(contact.email, 254) || null},
+        ${cleanText(contact.profession, 200) || null},
+        ${Number.isFinite(Number(contact.income)) ? Number(contact.income) : null},
+        ${cleanText(grant.grantType, 120) || null},
+        ${Number.isFinite(Number(grant.grantAmount)) ? Number(grant.grantAmount) : null},
+        ${cleanText(grant.grantDescription, 2000) || null},
+        ${cleanText(banking.bankName, 200) || null},
+        ${cleanText(banking.accountHolder, 200) || null},
+        'pending',
+        NOW(),
         ${encrypted.ciphertext},
         ${encrypted.iv},
         ${encrypted.authTag},
-        ${encrypted.last4},
-        ${req.body.images.idCardFront.pathname},
-        ${req.body.images.idCardBack.pathname},
-        NOW()
+        ${encrypted.last4}
       )
-      RETURNING application_id, transaction_number, created_at
+      RETURNING id, transaction_number, created_at
+    `;
+
+    await sql`
+      INSERT INTO public.application_images
+        (application_id, image_side, storage_key, original_name, mime_type, file_size)
+      VALUES
+        (${body.applicationId}::uuid, 'front', ${body.images.idCardFront.pathname}, ${cleanText(body.images.idCardFront.pathname.split('/').pop(), 255)}, ${body.images.idCardFront.contentType}, ${body.images.idCardFront.size}),
+        (${body.applicationId}::uuid, 'back', ${body.images.idCardBack.pathname}, ${cleanText(body.images.idCardBack.pathname.split('/').pop(), 255)}, ${body.images.idCardBack.contentType}, ${body.images.idCardBack.size})
     `;
 
     return json(res, 201, {
       ok: true,
-      applicationId: result[0].application_id,
-      transactionNumber: result[0].transaction_number,
-      createdAt: result[0].created_at
+      applicationId: application[0].id,
+      transactionNumber: application[0].transaction_number,
+      createdAt: application[0].created_at
     });
   } catch (error) {
     console.error('Application storage failed:', error);
