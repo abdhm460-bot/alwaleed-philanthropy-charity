@@ -32,6 +32,7 @@ function optionalNumber(value) { if (value === '' || value === null || value ===
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return json(res, 405, { ok: false, error: 'Method not allowed' });
+  let stage = 'validation';
   try {
     const body = req.body || {};
     if (!isUuid(body.applicationId)) return json(res, 400, { ok: false, error: 'Invalid applicationId' });
@@ -47,8 +48,12 @@ module.exports = async function handler(req, res) {
     if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(iban)) return json(res, 400, { ok: false, error: 'Invalid IBAN format' });
     if (!validImageRecord(body.images.idCardFront, 'idCardFront', body.applicationId) || !validImageRecord(body.images.idCardBack, 'idCardBack', body.applicationId)) return json(res, 400, { ok: false, error: 'Invalid identity image metadata' });
 
+    stage = 'iban-encryption';
     const encrypted = encryptIban(iban);
+    stage = 'database-connection';
     const sql = neon(process.env.DATABASE_URL);
+
+    stage = 'application-insert';
     const application = await sql`
       INSERT INTO public.applications (
         id, transaction_number, full_name, country, marital_status, num_children, phone, email,
@@ -64,6 +69,7 @@ module.exports = async function handler(req, res) {
       ) RETURNING id, transaction_number, created_at
     `;
 
+    stage = 'image-record-insert';
     await sql`
       INSERT INTO public.application_images (application_id, image_side, storage_key, mime_type, file_size)
       VALUES
@@ -73,7 +79,7 @@ module.exports = async function handler(req, res) {
 
     return json(res, 201, { ok: true, applicationId: application[0].id, transactionNumber: application[0].transaction_number, createdAt: application[0].created_at });
   } catch (error) {
-    console.error('Application storage failed:', error);
-    return json(res, 500, { ok: false, error: 'Unable to save application' });
+    console.error('Application storage failed:', { stage, name: error?.name, code: error?.code, message: error?.message });
+    return json(res, 500, { ok: false, error: 'Unable to save application', stage });
   }
 };
