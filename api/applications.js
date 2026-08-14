@@ -47,7 +47,7 @@ module.exports = async function handler(req, res) {
     const email = cleanText(contact.email, 320);
     if (!cleanText(personal.fullName, 200)) return json(res, 400, { ok: false, error: 'Full name is required' });
     if (!phone) return json(res, 400, { ok: false, error: 'Phone is required' });
-    if (!/^\+?[0-9\s\-\(\)\.]{10,25}$/.test(phone)) return json(res, 400, { ok: false, error: 'Invalid phone number' });
+    if (!/^\+?[0-9\s\-\(\)\.,]{10,30}$/.test(phone)) return json(res, 400, { ok: false, error: 'Invalid phone number' });
     if (email && !/^\S+@\S+\.\S+$/.test(email)) return json(res, 400, { ok: false, error: 'Invalid email address' });
     if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,41}$/.test(iban)) return json(res, 400, { ok: false, error: 'Invalid IBAN format' });
     if (!validImageRecord(body.images.idCardFront, 'idCardFront', body.applicationId) || !validImageRecord(body.images.idCardBack, 'idCardBack', body.applicationId)) return json(res, 400, { ok: false, error: 'Invalid identity image metadata' });
