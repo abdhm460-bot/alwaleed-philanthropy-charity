@@ -20,7 +20,17 @@ module.exports = async function handler(req, res) {
   if (!process.env.BLOB_READ_WRITE_TOKEN) return json(res, 503, { ok: false, error: 'Blob storage is not configured' });
 
   try {
-    const body = req.body || {};
+    // Client uploads send a JSON HandleUploadBody. Explicitly normalize it so
+    // the Blob SDK always receives the event object, including on Vercel's
+    // legacy Node API body-parser path.
+    let body = req.body;
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body); } catch { return json(res, 400, { ok: false, error: 'Invalid JSON request body' }); }
+    }
+    if (!body || typeof body !== 'object' || !body.type || !body.payload) {
+      return json(res, 400, { ok: false, error: 'Invalid Blob client upload request' });
+    }
+
     const response = await handleUpload({
       body,
       request: req,
@@ -32,21 +42,42 @@ module.exports = async function handler(req, res) {
         if (!ALLOWED_FIELDS.has(fieldName)) throw new Error('Invalid identity image field');
         if (!ALLOWED_TYPES.has(contentType)) throw new Error('Unsupported image type');
         if (!Number.isInteger(size) || size <= 0 || size > MAX_FILE_SIZE) throw new Error('Image exceeds the 5 MB limit');
+
         const expectedPrefix = `applications/${applicationId}/${fieldName}`;
         const expectedExtension = EXTENSIONS[contentType];
         if (typeof pathname !== 'string' || !pathname.startsWith(expectedPrefix) || !pathname.endsWith(expectedExtension) || pathname.includes('..')) {
           throw new Error('Invalid upload pathname');
         }
+
         return {
           allowedContentTypes: Array.from(ALLOWED_TYPES),
+          maximumSizeInBytes: MAX_FILE_SIZE,
           addRandomSuffix: true,
           tokenPayload: JSON.stringify({ applicationId, fieldName })
         };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        console.log('Private Blob upload completed', {
+          pathname: blob?.pathname,
+          tokenPayload
+        });
       }
     });
+
     return json(res, 200, response);
   } catch (error) {
-    console.error('Private Blob upload authorization failed:', error);
-    return json(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Unable to authorize upload' });
+    console.error('Private Blob upload authorization failed:', {
+      name: error?.name,
+      message: error?.message,
+      code: error?.code
+    });
+    return json(res, 400, {
+      ok: false,
+      error: error instanceof Error ? error.message : 'Unable to authorize upload'
+    });
   }
 };
+
+// Vercel Node API routes parse the JSON body by default. Keep this explicit so
+// the client-upload handshake is not affected by project-level parser changes.
+module.exports.config = { api: { bodyParser: true } };
