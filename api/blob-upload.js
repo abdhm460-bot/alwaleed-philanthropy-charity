@@ -27,20 +27,27 @@ module.exports = async function handler(req, res) {
       body,
       request: req,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        let meta = {};
-        try { meta = JSON.parse(clientPayload || '{}'); } catch { throw new Error('INVALID_CLIENT_PAYLOAD'); }
-        const { applicationId, fieldName, contentType, size } = meta;
+        if (typeof pathname !== 'string') throw new Error('INVALID_UPLOAD_PATH');
+        const match = /^applications\/([0-9a-f-]{36})\/(idCardFront|idCardBack)\.(jpg|png|webp)$/i.exec(pathname);
+        if (!match) throw new Error('INVALID_UPLOAD_PATH');
+        const applicationId = match[1];
+        const fieldName = match[2];
+        const extension = '.' + match[3].toLowerCase();
         if (!isUuid(applicationId)) throw new Error('INVALID_APPLICATION_ID');
         if (!ALLOWED_FIELDS.has(fieldName)) throw new Error('INVALID_IMAGE_FIELD');
-        if (!ALLOWED_TYPES.has(contentType)) throw new Error('UNSUPPORTED_IMAGE_TYPE');
-        if (!Number.isInteger(size) || size <= 0 || size > MAX_FILE_SIZE) throw new Error('IMAGE_SIZE_LIMIT');
-        const expectedPrefix = `applications/${applicationId}/${fieldName}.`;
-        const expectedExtension = EXTENSIONS[contentType];
-        if (typeof pathname !== 'string' || !pathname.startsWith(expectedPrefix) || !pathname.endsWith(expectedExtension) || pathname.includes('..')) {
-          throw new Error('INVALID_UPLOAD_PATH');
+
+        let meta = {};
+        if (clientPayload) {
+          try { meta = JSON.parse(clientPayload); } catch { throw new Error('INVALID_CLIENT_PAYLOAD'); }
         }
+        const contentType = typeof meta.contentType === 'string' ? meta.contentType.toLowerCase() : null;
+        const size = meta.size;
+        const expectedExtension = contentType ? EXTENSIONS[contentType] : extension;
+        if (contentType && (!ALLOWED_TYPES.has(contentType) || expectedExtension !== extension)) throw new Error('UNSUPPORTED_IMAGE_TYPE');
+        if (size !== undefined && (!Number.isInteger(size) || size <= 0 || size > MAX_FILE_SIZE)) throw new Error('IMAGE_SIZE_LIMIT');
+
         return {
-          allowedContentTypes: [contentType],
+          allowedContentTypes: contentType ? [contentType] : Array.from(ALLOWED_TYPES),
           maximumSizeInBytes: MAX_FILE_SIZE,
           addRandomSuffix: false,
           tokenPayload: JSON.stringify({ applicationId, fieldName })
@@ -58,4 +65,4 @@ module.exports = async function handler(req, res) {
   }
 };
 
-module.exports.config = { api: { bodyParser: { sizeLimit: '1mb' } } };
+module.exports.config = { api: { bodyParser: true } };
