@@ -44,13 +44,31 @@ async function loadList(){
     showMessage('تم تحميل الطلبات.');
   }catch(e){showMessage('خطأ: '+e.message);}
 }
+async function loadImage(url){
+  const r=await fetch(url,{headers:{'x-admin-password':adminPassword},cache:'no-store'});
+  if(!r.ok) throw new Error('IMAGE_HTTP_'+r.status);
+  const blob=await r.blob();
+  return URL.createObjectURL(blob);
+}
 async function showDetails(id){
   try{
     const data=await api('/api/admin-applications?id='+encodeURIComponent(id));
     const a=data.application;
     $('details').hidden=false;
-    $('details').innerHTML='<h2>تفاصيل الطلب</h2><p><b>الاسم:</b> '+escapeHtml(a.full_name)+'</p><p><b>رقم المعاملة:</b> '+escapeHtml(a.transaction_number)+'</p><p><b>الهاتف:</b> '+escapeHtml(a.phone||'')+'</p><p><b>IBAN:</b> <code>'+escapeHtml(a.iban)+'</code></p><h3>صور الهوية</h3>'+(data.images.map(i=>i.url?`<div><b>${escapeHtml(i.side)}</b><br><img src="${escapeAttr(i.url)}" alt="${escapeAttr(i.side)}"></div>`:`<p>لم يتم العثور على صورة ${escapeHtml(i.side)}</p>`).join('')||'<p>لا توجد صور.</p>');
+    $('details').innerHTML='<h2>تفاصيل الطلب</h2><p><b>الاسم:</b> '+escapeHtml(a.full_name)+'</p><p><b>رقم المعاملة:</b> '+escapeHtml(a.transaction_number)+'</p><p><b>الهاتف:</b> '+escapeHtml(a.phone||'')+'</p><p><b>IBAN:</b> <code>'+escapeHtml(a.iban)+'</code></p><h3>صور الهوية</h3><div id="images">جارٍ تحميل الصور...</div>';
     $('details').scrollIntoView({behavior:'smooth'});
+
+    const container=$('images');
+    const results=await Promise.all(data.images.map(async i=>{
+      if(!i.url) return `<p>لم يتم العثور على صورة ${escapeHtml(i.side)}</p>`;
+      try{
+        const objectUrl=await loadImage(i.url);
+        return `<div><b>${escapeHtml(i.side)}</b><br><img src="${escapeAttr(objectUrl)}" alt="${escapeAttr(i.side)}"></div>`;
+      }catch(e){
+        return `<p>تعذر تحميل صورة ${escapeHtml(i.side)}.</p>`;
+      }
+    }));
+    container.innerHTML=results.join('')||'<p>لا توجد صور.</p>';
   }catch(e){showMessage('خطأ: '+e.message);}
 }
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
