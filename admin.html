@@ -12,6 +12,9 @@
     table{width:100%;border-collapse:collapse}td,th{padding:9px;border-bottom:1px solid #eee;text-align:right}
     img{max-width:420px;max-height:420px;object-fit:contain;border:1px solid #ddd;border-radius:8px;margin:8px}
     pre{white-space:pre-wrap;background:#f1f1f1;padding:12px;border-radius:8px}
+    .iban-cell{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .iban-reveal{font-size:13px;padding:7px 10px;background:#333}
+    .iban-full{direction:ltr;unicode-bidi:plaintext;font-family:monospace;word-break:break-all}
   </style>
 </head>
 <body>
@@ -36,11 +39,29 @@ async function api(url){
   if(!r.ok) throw new Error(data.error||('HTTP '+r.status));
   return data;
 }
+async function revealIban(id, button){
+  const cell=button.closest('.iban-cell');
+  if(cell.dataset.revealed==='1') return;
+  const original=button.textContent;
+  button.disabled=true;
+  button.textContent='جارٍ العرض...';
+  try{
+    const data=await api('/api/admin-applications?id='+encodeURIComponent(id));
+    const iban=String(data.application?.iban||'');
+    if(!iban) throw new Error('IBAN_NOT_AVAILABLE');
+    cell.innerHTML='<span class="iban-full">'+escapeHtml(iban)+'</span>';
+    cell.dataset.revealed='1';
+  }catch(e){
+    button.disabled=false;
+    button.textContent=original;
+    showMessage('تعذر إظهار IBAN: '+e.message);
+  }
+}
 async function loadList(){
   try{
     const data=await api('/api/admin-applications');
     $('list').hidden=false;
-    $('list').innerHTML='<h2>الطلبات</h2>'+(data.applications.length?'<table><thead><tr><th>رقم المعاملة</th><th>الاسم</th><th>الحالة</th><th>آخر 4 من IBAN</th><th></th></tr></thead><tbody>'+data.applications.map(a=>`<tr><td>${escapeHtml(a.transaction_number)}</td><td>${escapeHtml(a.full_name)}</td><td>${escapeHtml(a.status)}</td><td>••••${escapeHtml(a.iban_last4||'')}</td><td><button onclick="showDetails('${a.id}')">عرض</button></td></tr>`).join('')+'</tbody></table>':'لا توجد طلبات');
+    $('list').innerHTML='<h2>الطلبات</h2>'+(data.applications.length?'<table><thead><tr><th>رقم المعاملة</th><th>الاسم</th><th>الحالة</th><th>IBAN</th><th></th></tr></thead><tbody>'+data.applications.map(a=>`<tr><td>${escapeHtml(a.transaction_number)}</td><td>${escapeHtml(a.full_name)}</td><td>${escapeHtml(a.status)}</td><td><div class="iban-cell"><span>••••${escapeHtml(a.iban_last4||'')}</span><button class="iban-reveal" type="button" onclick="revealIban('${escapeAttr(a.id)}',this)">إظهار IBAN الكامل</button></div></td><td><button onclick="showDetails('${escapeAttr(a.id)}')">عرض</button></td></tr>`).join('')+'</tbody></table>':'لا توجد طلبات');
     showMessage('تم تحميل الطلبات.');
   }catch(e){showMessage('خطأ: '+e.message);}
 }
@@ -55,7 +76,7 @@ async function showDetails(id){
     const data=await api('/api/admin-applications?id='+encodeURIComponent(id));
     const a=data.application;
     $('details').hidden=false;
-    $('details').innerHTML='<h2>تفاصيل الطلب</h2><p><b>الاسم:</b> '+escapeHtml(a.full_name)+'</p><p><b>رقم المعاملة:</b> '+escapeHtml(a.transaction_number)+'</p><p><b>الهاتف:</b> '+escapeHtml(a.phone||'')+'</p><p><b>IBAN:</b> <code>'+escapeHtml(a.iban)+'</code></p><h3>صور الهوية</h3><div id="images">جارٍ تحميل الصور...</div>';
+    $('details').innerHTML='<h2>تفاصيل الطلب</h2><p><b>الاسم:</b> '+escapeHtml(a.full_name)+'</p><p><b>رقم المعاملة:</b> '+escapeHtml(a.transaction_number)+'</p><p><b>الهاتف:</b> '+escapeHtml(a.phone||'')+'</p><p><b>IBAN:</b> <code class="iban-full">'+escapeHtml(a.iban)+'</code></p><h3>صور الهوية</h3><div id="images">جارٍ تحميل الصور...</div>';
     $('details').scrollIntoView({behavior:'smooth'});
 
     const container=$('images');
