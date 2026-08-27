@@ -1,0 +1,35 @@
+name: Fix Open Graph metadata
+
+on:
+  push:
+    branches:
+      - fix/whatsapp-open-graph
+
+permissions:
+  contents: write
+
+jobs:
+  fix-og:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add Open Graph metadata
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          if 'property="og:url"' not in s:
+              marker = '    <meta property="og:type"        content="website">'
+              insert = '''    <meta property="og:url" content="https://alwaleedphilanthropy.vercel.app/">\n    <meta property="og:image" content="https://alwaleedphilanthropy.vercel.app/logo.png">\n    <meta property="og:image:alt" content="مؤسسة الوليد للإنسانية">\n    <meta name="twitter:card" content="summary_large_image">\n    <meta name="twitter:title" content="مؤسسة الوليد للإنسانية">\n    <meta name="twitter:description" content="تقديم طلبات المنح والدعم الإنساني">\n    <meta name="twitter:image" content="https://alwaleedphilanthropy.vercel.app/logo.png">'''
+              s = s.replace(marker, marker + '\n' + insert)
+              p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/og-fix.yml
+          git add index.html .github/workflows/og-fix.yml
+          git commit -m "Fix Open Graph metadata for WhatsApp link previews" || exit 0
+          git push
