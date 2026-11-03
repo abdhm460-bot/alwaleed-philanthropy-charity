@@ -145,7 +145,7 @@ function setupContactForm() {
                 `مرحباً، أنا ${name}\n\nالبريد الإلكتروني: ${email}\n\nالرسالة: ${message}`
             );
             
-            window.open(`https://wa.me/966545239928?text=${whatsappMessage}`, '_blank');
+            window.open(`https://wa.me/966548749776?text=${whatsappMessage}`, '_blank');
             form.reset();
         });
     }
